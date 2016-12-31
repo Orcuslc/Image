@@ -1,3 +1,4 @@
+# Blur an image; Served as simulation
 import cv2
 from scipy.ndimage import convolve as conv
 import numpy as np
@@ -12,7 +13,7 @@ def random_kernel(shape, number, dim):
 	y = np.random.randint(1, ymax - 1)
 	count = 1
 	while count < number:
-		kernel[x, y] = 1
+		kernel[x, y] += 1
 		direction = np.random.randint(0, 4)
 		if direction == 0 and x > 1:
 			x = x - 1
@@ -27,21 +28,23 @@ def random_kernel(shape, number, dim):
 			y = y + 1
 			count += 1
 	if dim == 3:
-		kernel = [[[i, i, i] for i in j] for j in kernel]
+		kernel = np.asarray([[[i, i, i] for i in j] for j in kernel])
 		return kernel/kernel.sum()
 	elif dim == 1:
 		return kernel/kernel.sum()
 
+
 def test(img, shape, number, dim):
 	kernel = random_kernel(shape, number, dim)
-	print(kernel)
 	blurred = blur(img, kernel)
-	return blurred
+	kernel[np.where(kernel != 0)] = 255
+	return blurred, kernel
 
 if __name__ == '__main__':
-	img = cv2.imread('test.jpg', 0)
-	blurred = test(img, shape = (27, 27), number = 200, dim = 1)
+	img = cv2.imread('test.jpg')
+	blurred, kernel = test(img, shape = (27, 27), number = 200, dim = 3)
 	cv2.imshow('img', blurred)
+	cv2.imshow('kernel', kernel)
 	k = cv2.waitKey(0)
 	if k == 27:
 		cv2.destroyAllWindows()
