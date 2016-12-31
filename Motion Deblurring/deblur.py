@@ -2,6 +2,10 @@ import numpy as np
 from psf2otf import psf2otf, isodd
 from blur import random_kernel
 import cv2
+from scipy.ndimage import convolve as conv
+
+fft2 = np.fft.fft2
+ifft2 = np.fft.iff
 
 k = 2.7
 a = 6.1*1e-4
@@ -30,7 +34,7 @@ def single_deblur(I, lambda1, lambda2, omega):
 			Lx[:-1, :], Ly[:, :-1] = L[1:, :] - L[:-1, :], L[:, 1:] - L[:, :-1]
 			Lx[-1, :], Ly[:, -1] = Lx[-2, :], Ly[:, -2]
 			ksi_x, ksi_y = update_ksi(Ix, Lx, lambda1, lambda2, gamma), update_ksi(Iy, Ly, lambda1, lambda2, gamma) # update ksi
-			
+
 
 def update_ksi(Iv, Lv, lambda1, lambda2, gamma):
 	ksi = np.zeros(Iv.shape)
@@ -52,6 +56,23 @@ def update_ksi(Iv, Lv, lambda1, lambda2, gamma):
 			else:
 				ksi[i, j] = k3[i, j]
 	return ksi
+
+def update_L(I, ksi_x, ksi_y, gamma, kernel):
+	p0 = np.asmatrix([0])
+	px = np.asmatrix([[0], [-1], [1]])
+	py = np.asmatrix([0, -1, 1])
+	pxx = np.asmatrix([[0], [0], [1], [-2], [1]])
+	pxy = np.asmatrix([[0, 0, 0], [0, 1, -1], [0, -1, 1]])
+	pyy = np.asmatrix([0, 0, 1, -2, 1])
+	delta = 0
+	w = [50, 25, 25, 12.5, 12.5, 12.5]
+	p = [p0, px, py, pxx, pxy, pyy]
+	for i in range(6):
+		delta += w[i] * conv(np.conj(psf2otf(p[i])), psf2otf(p[i]))
+	M1 = conv(conv(np.conj(fft2(kernel)), fft2(I)), delta) + gamma * conv(np.conj(psf2otf(px)), fft2(ksi_x)) + gamma * conv(np.conj(psf2otf(py)), fft2(ksi_y))
+	M2 = conv(conv(np.conj(fft2(kernel)), fft2(kernel)), delta) + gamma * conv(np.conj(psf2otf(px)), psf2otf(px)) + gamma * conv(np.conj(psf2otf(py)), psf2otf(py))
+	L = np.fft.ifft2(M1/M2)
+	return L
 
 def decompRGB(img):
 	R = np.asarray([[i[0] for i in j] for j in img])
