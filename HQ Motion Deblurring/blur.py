@@ -42,7 +42,7 @@ def test(img, shape, number, dim):
 
 if __name__ == '__main__':
 	img = cv2.imread('test.jpg')
-	blurred, kernel = test(img, shape = (27, 27), number = 200, dim = 3)
+	blurred, kernel = test(img, shape = (41, 41), number = 1700, dim = 3)
 	cv2.imshow('img', blurred)
 	cv2.imshow('kernel', kernel)
 	k = cv2.waitKey(0)
