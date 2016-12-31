@@ -20,21 +20,38 @@ def deblur(img, psf_shape, dim = 1, threshold = 5, lambda1 = 0.1, lambda2 = 20, 
 	(row, col) = R.shape
 	omega = smooth_region(R, G, B, psf_shape, threshold)	# Compute the smooth region
 	L = img.copy()	# Initialize the L with observed image
-	
+	R0, Rkernel0 = single_deblur(R, lambda1, lambda2, omega, kernel)
+	G0, Gkernel0 = single_deblur(G, lambda1, lambda2, omega, kernel)
+	B0, Bkernel0 = single_deblur(B, lambda1, lambda2, omega, kernel)
+	for i in range(kernel.shape[1]):
+		for j in range(kernel.shape[0]):
+			if Rkernel0[i, j] + Gkernel0[i, j] + Bkernel0[i, j] >= 2:
+				kernel[i, j] = 1
+	return [[[R0[i, j], G0[i, j], B0[i, j]] for j in range(col)] for i in range(row)], kernel
 
-def single_deblur(I, lambda1, lambda2, omega):
+def single_deblur(I, lambda1, lambda2, omega, kernel):
 	# Update With a Single Color
 	L = I.copy() # Init L with I
 	Ix, Iy = np.zeros(I.shape), np.zeros(I.shape)
 	Ix[:-1, :], Iy[:, :-1] = I[1:, :] - I[:-1, :], I[:, 1:] - I[:, :-1]
 	Ix[-1, :], Iy[:, -1] = Ix[-2, :], Iy[:, -2]
 	while True:	# Optimizing L and f
+		ksi_x0 = I.copy()
+		ksi_y0 = I.copy()
 		while True: # Optimizing L
 			Lx, Ly = np.zeros(L.shape), np.zeros(L.shape)
 			Lx[:-1, :], Ly[:, :-1] = L[1:, :] - L[:-1, :], L[:, 1:] - L[:, :-1]
 			Lx[-1, :], Ly[:, -1] = Lx[-2, :], Ly[:, -2]
 			ksi_x, ksi_y = update_ksi(Ix, Lx, lambda1, lambda2, gamma), update_ksi(Iy, Ly, lambda1, lambda2, gamma) # update ksi
-
+			L0 = update_L(I, ksi_x, ksi_y, gamma, kernel)
+			if np.linalg.norm(L2 - L1) < 1e-5 and np.linalg.norm(ksi_x - ksi_x0) < 1e-5 and np.linalg.norm(ksi_y - ksi_y0) < 1e-5:
+				break
+			L = L0.copy()
+			ksi_x0, ksi_y0 = ksi_x.copy(), ksi_y.copy()
+		kernel0 = update_f()
+		if np.linalg.norm(kernel - kernel0) < 1e-5:
+			break
+	return L0, kernel0
 
 def update_ksi(Iv, Lv, lambda1, lambda2, gamma):
 	ksi = np.zeros(Iv.shape)
@@ -73,6 +90,9 @@ def update_L(I, ksi_x, ksi_y, gamma, kernel):
 	M2 = conv(conv(np.conj(fft2(kernel)), fft2(kernel)), delta) + gamma * conv(np.conj(psf2otf(px)), psf2otf(px)) + gamma * conv(np.conj(psf2otf(py)), psf2otf(py))
 	L = np.fft.ifft2(M1/M2)
 	return L
+
+def update_f():
+	pass
 
 def decompRGB(img):
 	R = np.asarray([[i[0] for i in j] for j in img])
