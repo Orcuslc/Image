@@ -21,6 +21,12 @@ def laplacian(img, order = 3):
 # 	nimg = img - conv(img, temp)
 # 	return nimg
 
+def unsharp_masking(img):
+	pass
+
+def gradient(img):
+	
+
 if __name__ == '__main__':
 	img = cv2.imread('../test-images/test_blurred.jpg', 0)	
 	nimg = laplacian(img, 1)
