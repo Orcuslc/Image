@@ -25,7 +25,7 @@ def unsharp_masking(img):
 	pass
 
 def gradient(img):
-	
+	pass
 
 if __name__ == '__main__':
 	img = cv2.imread('../test-images/test_blurred.jpg', 0)	
